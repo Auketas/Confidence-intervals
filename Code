@@ -1,0 +1,63 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jun 28 18:21:54 2020
+
+@author: Auke
+"""
+import numpy as np
+import scipy.stats as st
+import matplotlib.pyplot as plt
+#Insert input in the lines below:
+sample_size_1 = 100 #Sample size of the sample used to validate the first model
+accuracy_model_1 = 0.9 #Accuracy of the first model over the first sample
+sample_size_2 = 100 #Sample size of the sample used to compare the first and the second model
+accuracy_model_2 = 0.8 #Accuracy of the second model over the second sample
+confidence_width = 0.95 #How wide the confidence intervals should be, e.g. enter 0.95 for 95% confidence intervals
+fraction_diff = 0.1 #What fraction of the observations in the full population were predicted differently by the two models
+
+#The function below calculates the confidence intervals
+def confidence_intervals(sample_size_1, accuracy_model_1, sample_size_2, accuracy_model_2, confidence_width, fraction_diff):
+    z = -st.norm.ppf((1-confidence_width)/2)
+
+    #Below this line the confidence interval of model 1 is calculated
+    lb_m1 = accuracy_model_1 - z*np.sqrt(accuracy_model_1*(1-accuracy_model_1)/sample_size_1)
+    ub_m1 = accuracy_model_1 + z*np.sqrt(accuracy_model_1*(1-accuracy_model_1)/sample_size_1)
+
+    #Below this line the confidence interval for the difference between model 1 and model 2 is calculated based on the observations that are predicted differently
+
+    lb_temp = max(0,accuracy_model_2 - z*np.sqrt(accuracy_model_2*(1-accuracy_model_2)/sample_size_2))
+    ub_temp = min(accuracy_model_2 + z*np.sqrt(accuracy_model_2*(1-accuracy_model_2)/sample_size_2),1)
+
+    lb_diff = fraction_diff*(2*lb_temp-1)
+    ub_diff = fraction_diff*(2*ub_temp-1)
+
+
+    #Below this line the confidence interval of model 2 is calculated
+    m1 = np.zeros(10000)
+    dif = np.zeros(10000)
+    m2 = np.zeros(10000)
+    
+    
+    for i in range(10000):
+        m1[i] = np.random.binomial(n=sample_size_1, p=accuracy_model_1)/sample_size_1
+        temp = np.random.binomial(n=sample_size_2, p=accuracy_model_2)/sample_size_2
+        dif[i] = fraction_diff*(2*temp-1)
+        m2[i] = min(m1[i] + dif[i],1)
+    
+    m2.sort()
+    ci_lb = round(10000*(1-confidence_width)/2)
+    ci_ub = round(10000-ci_lb)
+
+    lb_m2 = max(0,m2[ci_lb])
+    ub_m2 = min(m2[ci_ub],1)
+    return lb_m1, lb_m2, ub_m1, ub_m2
+
+#Line 59 executes the function with the inputs from line 11-16. The outputs can be accessed as follows:
+#The boundaries of the confidence interval for the accuracy of the first model are called lb_m1 and ub_m1 respectively
+#The boundaries of the confidence interval for the accuracy of the second model are called lb_m2 and ub_m2 respectively
+
+lb_m1, lb_m2, ub_m1, ub_m2 = confidence_intervals(sample_size_1, accuracy_model_1, sample_size_2, accuracy_model_2, confidence_width, fraction_diff)
+print("Lower bound model 1 is ",lb_m1)
+print("Upper bound model 1 is ",ub_m1)
+print("Lower bound model 2 is ",lb_m2)
+print("Upper bound model 2 is ",ub_m2) 
